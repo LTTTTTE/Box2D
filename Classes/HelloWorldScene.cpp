@@ -81,6 +81,14 @@ bool HelloWorld::createBox2dWorld(bool debug)
 
 void HelloWorld::setBox2dWorld()  ////스테틱, 키네마틱 바디들 생성( 월드지형생성느낌)
 {
+
+	//조인트는 바디와 바디의 연결고리 
+	bDrag = false; //아래는 마우스 조인트 바디.
+	gbody = this->addNewSprite(Vec2(0, 0), Size(0, 0), b2_staticBody, nullptr, 0);
+	
+	this->addNewSprite(Vec2(240, 160), Size(32, 32), b2_dynamicBody, "test", 0);
+
+
 	texture = Director::getInstance()->getTextureCache()->addImage("Globe_48px.png");
 	texture_block = Director::getInstance()->getTextureCache()->addImage("blocks.png");
 
@@ -199,13 +207,88 @@ void HelloWorld::onDraw(const Mat4 & transform, uint32_t flags)
 
 }
 
+b2Body * HelloWorld::addNewSprite(Vec2 point, Size size, b2BodyType bodytype, const char * spriteName, int type)
+{
+
+	b2Body* body;
+	b2BodyDef bodydef;
+	bodydef.position.Set(point.x / PTM_RATIO, point.y / PTM_RATIO);
+
+	if (spriteName) {   //뭔진모르겟는데 그냥 결론은 스프라이트생성후 바디정보에 넣기.
+		if (strcmp(spriteName, "test") == 0) {
+
+			int idx = (CCRANDOM_0_1() > 0.5 ? 0 : 1);
+			int idy = (CCRANDOM_0_1() > 0.5 ? 0 : 1);
+			auto spr = Sprite::create("blocks.png");
+			spr->setPosition(point);
+
+			this->addChild(spr);
+			bodydef.userData = spr;
+		}
+		else {
+			auto spr = Sprite::create(spriteName);
+			spr->setPosition(point);
+			this->addChild(spr);
+
+			bodydef.userData = spr;
+		}
+	}
+		body = world->CreateBody(&bodydef);
+
+		b2FixtureDef fixdef;
+		b2PolygonShape shape;
+		b2CircleShape shape_cir;
+
+		if (type == 0) {
+			shape.SetAsBox(size.width / 2 / PTM_RATIO, size.height / 2 / PTM_RATIO);
+			fixdef.shape = &shape;
+		}
+		else {
+			shape_cir.m_radius = (size.width / 2) / PTM_RATIO;
+			fixdef.shape = &shape_cir;
+		}
+
+		fixdef.density = 1.0f;
+		fixdef.restitution = 0.7f;
+
+		body->CreateFixture(&fixdef);
+
+		CCLOG("addNewSprite");
+
+		return body;
+}
+
+b2Body * HelloWorld::getBodyAtTab(Vec2 point)//터치한곳이랑 모든바디랑 비교해서 체크
+{
+	b2Fixture* fix; 
+
+	for (b2Body* b = world->GetBodyList(); b; b = b->GetNext()) { //모든바디 돌기!~
+		
+		if (b->GetUserData() != nullptr) { //모든바디돌기
+
+			if (b->GetType() == b2_staticBody)continue; //스테틱바디들은 재낌
+		
+			fix = b->GetFixtureList(); //그바디의 픽스쳐 뽑아냄
+			CCLOG("getBodyAtTab");
+			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			/**//**//**//**//**//**//**//**//**////아래조건문을 돌지않음.
+			if (fix->TestPoint(b2Vec2(point.x / PTM_RATIO, point.y / PTM_RATIO))) // TestPoint << 충돌체크인거같음..
+				return b; //요고맞으면 반환
+		}
+	}
+	return nullptr;
+}
+
 void HelloWorld::onEnter()
 {
 	Scene::onEnter();
 
 	auto listener = EventListenerTouchOneByOne::create();
 	listener->setSwallowTouches(true);
-	listener->onTouchBegan = CC_CALLBACK_2(HelloWorld::onTouchBegan, this);
+//	listener->onTouchBegan = CC_CALLBACK_2(HelloWorld::onTouchBegan, this);
+	listener->onTouchBegan = CC_CALLBACK_2(HelloWorld::onTouchBegan2, this);
+	listener->onTouchMoved = CC_CALLBACK_2(HelloWorld::onTouchMoved, this);
+	listener->onTouchEnded = CC_CALLBACK_2(HelloWorld::onTouchEnded, this);
 
 	Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(listener, this);
 
@@ -252,7 +335,53 @@ bool HelloWorld::onTouchBegan(Touch * touch, Event * event)
 {
 	addNewSpriteAtPosition2(touch->getLocation());
 
-	return false;
+	return true;
+}
+
+bool HelloWorld::onTouchBegan2(Touch * touch, Event * event)
+{
+	Vec2 touch_point = touch->getLocation();
+
+	if (b2Body* b = this->getBodyAtTab(touch_point)) {
+		
+//		//조인트는 바디와 바디의 연결고리 
+//		bDrag = false; //아래는 마우스 조인트 바디.
+//		gbody = this->addNewSprite(Vec2(0, 0), Size(0, 0), b2_staticBody, nullptr, 0);
+
+		dragbody = b;
+		bDrag = true;
+
+		b2MouseJointDef mouseJdef;
+		mouseJdef.bodyA = gbody;
+		mouseJdef.bodyB = dragbody;
+		mouseJdef.target.Set(dragbody->GetPosition().x, dragbody->GetPosition().y);
+		mouseJdef.maxForce = 300.0*dragbody->GetMass();
+
+		mouseJ = (b2MouseJoint*)world->CreateJoint(&mouseJdef);
+		CCLOG("onTouchBagan2");
+	}
+
+	return true;
+}
+
+void HelloWorld::onTouchMoved(Touch * touch, Event * event)
+{
+	if (bDrag) { //리동
+		mouseJ->SetTarget(b2Vec2(touch->getLocation().x / PTM_RATIO, touch->getLocation().y / PTM_RATIO));
+	}
+}
+
+void HelloWorld::onTouchEnded(Touch * touch, Event * event)
+{
+	if (bDrag) {
+		//조인트제거
+		world->DestroyJoint(mouseJ);
+		mouseJ = nullptr;
+
+		dragbody->SetAwake(true);
+
+	}
+	bDrag = false;
 }
 
 void HelloWorld::addNewSpriteAtPosition(Vec2 location)

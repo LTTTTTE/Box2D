@@ -15,6 +15,7 @@ class HelloWorld : public Scene {
 public:
 
 	bool debug = false;
+	bool bDrag;
 
 	static Scene* createScene();
 	virtual bool init();
@@ -32,14 +33,25 @@ public:
 	void onDraw(const Mat4& transform, uint32_t flags);
 	////
 
+	b2Body* dragbody;
+	b2Body* gbody;
+	b2MouseJoint* mouseJ;
+	
+	b2Body* addNewSprite(Vec2 point, Size size, b2BodyType bodytype, const char* spriteName, int type);
+	b2Body* getBodyAtTab(Vec2 point);
+
 	void onEnter();
 	void tick(float dt);
 
 	bool createBox2dWorld(bool debug);
 	void setBox2dWorld();
-	bool onTouchBegan(Touch* touch, Event* event);
 	void addNewSpriteAtPosition(Vec2 location);
 	void addNewSpriteAtPosition2(Vec2 location);
+
+	bool onTouchBegan(Touch* touch, Event* event);
+	bool onTouchBegan2(Touch* touch, Event* event);
+	void onTouchMoved(Touch* touch, Event* event);
+	void onTouchEnded(Touch* touch, Event* event);
 
 
 	CREATE_FUNC(HelloWorld);
