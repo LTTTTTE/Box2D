@@ -1,12 +1,14 @@
 #include "HelloWorldScene.h"
 
+std::random_device rd;
+std::mt19937_64 _MT19937(rd());
+
 Scene* HelloWorld::createScene()
 {
 	Scene* scene = HelloWorld::create();
 
 	return scene;
 }
-
 
 bool HelloWorld::init()
 {
@@ -16,7 +18,8 @@ bool HelloWorld::init()
 		return false;
 	}
 
-	if (this->createBox2dWorld(debug)) 
+	if (this->createBox2dWorld(debug))
+		this->setBox2dWorld();
 		this->schedule(schedule_selector(HelloWorld::tick));
 
 	return true;
@@ -76,48 +79,22 @@ bool HelloWorld::createBox2dWorld(bool debug)
 	return true;
 }
 
-void HelloWorld::draw(Renderer * renderer, const Mat4 & transform, uint32_t flags)
+void HelloWorld::setBox2dWorld()  ////스테틱, 키네마틱 바디들 생성( 월드지형생성느낌)
 {
-	Scene::draw(renderer, transform, flags);
-	custom_cmd.init(_globalZOrder, transform, flags);
-	custom_cmd.func = CC_CALLBACK_0(HelloWorld::onDraw, this, transform, flags);
-	renderer->addCommand(&custom_cmd);
-	
-}
-
-void HelloWorld::onDraw(const Mat4 & transform, uint32_t flags)
-{
-	Director* director = Director::getInstance();
-
-	CCASSERT(nullptr != director, "Director is null when seting matrix stack");
-	director->pushMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
-	director->loadMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW, transform);
-
-
-	GL::enableVertexAttribs(cocos2d::GL::VERTEX_ATTRIB_FLAG_POSITION);
-	world->DrawDebugData();
-	CHECK_GL_ERROR_DEBUG();
-
-	director->popMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
-	
-}
-
-void HelloWorld::onEnter()
-{
-	Scene::onEnter();
-
 	texture = Director::getInstance()->getTextureCache()->addImage("Globe_48px.png");
+	texture_block = Director::getInstance()->getTextureCache()->addImage("blocks.png");
+
+	//static body start////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	b2Body* body_droid;
-
 	b2BodyDef def_droid; //바디설정기본값 .type = static
-	
+
 	auto spr_droid = Sprite::create("Android_48px.png");
 	spr_droid->setPosition(200, 50);
 	this->addChild(spr_droid, 0, "spr_droid");
 
 	if (!debug) {
-		
+
 		def_droid.userData = spr_droid;
 	}
 	else {
@@ -139,6 +116,92 @@ void HelloWorld::onEnter()
 	fixdef_droid.restitution = 0.7f;
 
 	body_droid->CreateFixture(&fixdef_droid);
+
+
+	auto spr_block = Sprite::createWithTexture(texture_block);
+	//auto spr_block = Sprite::create("blocks.png");
+	spr_block->setPosition(winsize.width / 3, winsize.height / 3);
+	this->addChild(spr_block);
+
+	b2Body* body_block;
+	b2BodyDef bodydef_block;
+
+	bodydef_block.type = b2_staticBody;
+	bodydef_block.position.Set(winsize.width / 3 / PTM_RATIO, winsize.height / 3 / PTM_RATIO); 
+	bodydef_block.userData = spr_block;
+
+	body_block = world->CreateBody(&bodydef_block);
+
+
+	b2FixtureDef fixdef_block;
+	b2PolygonShape shape_block;		// 스프라이트의 크기를 뽑아내어 쉽게 픽스쳐크기를 설정할수잇다. !그리고 모든 크기는 반지름크기로!
+	shape_block.SetAsBox((spr_block->getContentSize().width / 2) / PTM_RATIO, (spr_block->getContentSize().height / 2) / PTM_RATIO);
+
+	fixdef_block.density = 1.0f;
+	fixdef_block.shape = &shape_block;
+
+	body_block->CreateFixture(&fixdef_block);
+
+	//static body end////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	//kinematic body  start////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	auto spr_minecraft = Sprite::create("Minecraft_48px.png");
+	spr_minecraft->setPosition(0, 200);
+	this->addChild(spr_minecraft, 5, "spr_minecraft");
+
+	b2Body* body_minecraft;
+	b2BodyDef bodydef_minecraft;
+
+	bodydef_minecraft.type = b2_kinematicBody;
+	bodydef_minecraft.position.Set(0, 100.0f / PTM_RATIO);
+	bodydef_minecraft.linearVelocity.Set(10.0f, 0);
+	bodydef_minecraft.userData = spr_minecraft;
+
+	body_minecraft = world->CreateBody(&bodydef_minecraft);
+
+	b2FixtureDef fixdef_minecraft;
+	b2PolygonShape shape_minecraft;
+	shape_minecraft.SetAsBox((spr_minecraft->getContentSize().width / 2) / PTM_RATIO, (spr_minecraft->getContentSize().height / 2) / PTM_RATIO);
+
+	fixdef_minecraft.density = 1.0f;
+	fixdef_minecraft.shape = &shape_minecraft;
+
+	body_minecraft->CreateFixture(&fixdef_minecraft);
+
+	//kinematic body end////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+}
+
+void HelloWorld::draw(Renderer * renderer, const Mat4 & transform, uint32_t flags)
+{
+	Scene::draw(renderer, transform, flags);
+	custom_cmd.init(_globalZOrder, transform, flags);
+	custom_cmd.func = CC_CALLBACK_0(HelloWorld::onDraw, this, transform, flags);
+	renderer->addCommand(&custom_cmd);
+
+}
+
+void HelloWorld::onDraw(const Mat4 & transform, uint32_t flags)
+{
+	Director* director = Director::getInstance();
+
+	CCASSERT(nullptr != director, "Director is null when seting matrix stack");
+	director->pushMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
+	director->loadMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW, transform);
+
+
+	GL::enableVertexAttribs(cocos2d::GL::VERTEX_ATTRIB_FLAG_POSITION);
+	world->DrawDebugData();
+	CHECK_GL_ERROR_DEBUG();
+
+	director->popMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
+
+}
+
+void HelloWorld::onEnter()
+{
+	Scene::onEnter();
 
 	auto listener = EventListenerTouchOneByOne::create();
 	listener->setSwallowTouches(true);
@@ -162,12 +225,32 @@ void HelloWorld::tick(float dt)
 			spr->setRotation(-1 * CC_RADIANS_TO_DEGREES(b->GetAngle()));//스프라이트의 각도도 바디각도에맞게 돌린다.
 		}
 
+		//
+		if (b->GetType() == b2_kinematicBody) {
+
+			MT19937 num(1, 5); //난수생성
+			MT19937 num2(-5, 5);
+
+			if (b->GetPosition().x*PTM_RATIO > winsize.width ) //방항전환
+				b->SetLinearVelocity(b2Vec2(num(_MT19937)*-5.0f, num2(_MT19937)*5.0f));
+
+			if (b->GetPosition().y*PTM_RATIO > winsize.height)
+				b->SetLinearVelocity(b2Vec2(num2(_MT19937)*5.0f, num(_MT19937)*-5.0f));
+
+			if (b->GetPosition().x*PTM_RATIO < 0 )
+				b->SetLinearVelocity(b2Vec2(num(_MT19937)*5.0f, num2(_MT19937)*5.0f));
+
+			if (b->GetPosition().y*PTM_RATIO < 0)
+				b->SetLinearVelocity(b2Vec2(num2(_MT19937)*5.0f, num(_MT19937)*5.0f));
+		}
 	}
+
+
 }
 
 bool HelloWorld::onTouchBegan(Touch * touch, Event * event)
 {
-	addNewSpriteAtPosition(touch->getLocation());
+	addNewSpriteAtPosition2(touch->getLocation());
 
 	return false;
 }
@@ -204,5 +287,40 @@ void HelloWorld::addNewSpriteAtPosition(Vec2 location)
 	fix_spr_def.restitution = 0.7f;
 
 	body_spr->CreateFixture(&fix_spr_def);
+
+}
+
+void HelloWorld::addNewSpriteAtPosition2(Vec2 location)
+{
+	MT19937 num(1, 3);
+
+	auto spr_google = Sprite::create("Google_Play_48px.png");
+	spr_google->setPosition(location.x, location.y);
+	spr_google->setAnchorPoint(Point(0.5, 0.1));
+	this->addChild(spr_google,1,"spr_google");
+
+	b2Body* body_google;
+	b2BodyDef bodydef_google;
+
+	bodydef_google.type = b2_dynamicBody;
+	bodydef_google.position.Set(location.x / PTM_RATIO, location.y / PTM_RATIO);
+	bodydef_google.userData = spr_google;
+
+	body_google = world->CreateBody(&bodydef_google);
+
+	b2FixtureDef fixdef_google;
+	b2PolygonShape shape_google;
+
+	b2Vec2 tri[3];
+	tri[0] = b2Vec2((spr_google->getContentSize().width / 2)*0.9 / PTM_RATIO * -1, 0.0);
+	tri[1] = b2Vec2((spr_google->getContentSize().width / 2)*0.9 / PTM_RATIO, 0.0);
+	tri[2] = b2Vec2(0.0, (spr_google->getContentSize().height)*0.9 / PTM_RATIO);
+	shape_google.Set(tri, 3);
+
+	fixdef_google.shape = &shape_google;
+	fixdef_google.density = 1.0f;
+	fixdef_google.restitution = 0.7f;
+
+	body_google->CreateFixture(&fixdef_google);
 
 }
