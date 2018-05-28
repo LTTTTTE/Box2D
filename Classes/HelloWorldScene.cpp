@@ -22,6 +22,10 @@ bool HelloWorld::init()
 	texture = Director::getInstance()->getTextureCache()->addImage("Globe_48px.png");
 	texture_block = Director::getInstance()->getTextureCache()->addImage("blocks.png");
 
+	auto spr_button = Sprite::create("button_48px.png");
+	spr_button->setPosition(50, winsize.height - 70);
+	this->addChild(spr_button, 3, "spr_button");
+
 	if (this->createBox2dWorld(debug)) {
 
 		srand((int)time(nullptr));
@@ -278,6 +282,7 @@ b2Body * HelloWorld::getBodyAtTab(Vec2 point)//터치한곳이랑 모든바디랑 비교해서 
 		if (b->GetUserData() != nullptr) { //모든바디돌기
 
 			if (b->GetType() == b2_staticBody)continue; //스테틱바디들은 재낌
+			//if (b->GetType() == b2_kinematicBody)continue;
 
 			fix = b->GetFixtureList(); //그바디의 픽스쳐 뽑아냄
 			CCLOG("getBodyAtTab");
@@ -346,6 +351,44 @@ void HelloWorld::tick(float dt)
 
 bool HelloWorld::onTouchBegan(Touch * touch, Event * event)
 {
+	//그냥 버튼으로 물체 생성코드
+	if ((Sprite*)this->getChildByName("spr_button")->getBoundingBox().containsPoint(touch->getLocation())) {
+
+		CCLOG("button");
+		
+		auto spr_tri = Sprite::create("Under_Construction_48px.png");
+		spr_tri->setPosition(touch->getLocation().x, touch->getLocation().y);
+		spr_tri->setAnchorPoint(Point(0.5, 0.1));
+		this->addChild(spr_tri, 1, "spr_tri");
+
+		b2Body* body_tri;
+		b2BodyDef bodydef_tri;
+
+		bodydef_tri.type = b2_dynamicBody;
+		bodydef_tri.position.Set(touch->getLocation().x / PTM_RATIO, touch->getLocation().y / PTM_RATIO);
+		bodydef_tri.userData = spr_tri;
+		
+		body_tri = world->CreateBody(&bodydef_tri);
+
+		b2FixtureDef fixdef_tri;
+		b2PolygonShape shape_tri;
+		
+		b2Vec2 tri[3] = { b2Vec2(spr_tri->getContentSize().width / 2 / PTM_RATIO * -1,0),
+						  b2Vec2(spr_tri->getContentSize().width / 2 / PTM_RATIO * 1,0),
+						  b2Vec2(0,spr_tri->getContentSize().height*0.9 / PTM_RATIO) };
+
+		shape_tri.Set(tri, 3);
+
+		fixdef_tri.shape = &shape_tri;
+		fixdef_tri.density = 1.0f;
+		fixdef_tri.restitution = 0.7f;
+
+		body_tri->CreateFixture(&fixdef_tri);
+
+	}
+
+
+
 	Vec2 touch_point = touch->getLocation();
 
 	if (b2Body* b = this->getBodyAtTab(touch_point)) {
@@ -366,6 +409,10 @@ bool HelloWorld::onTouchBegan(Touch * touch, Event * event)
 		mouseJ = (b2MouseJoint*)world->CreateJoint(&mouseJdef);
 		CCLOG("onTouchBagan");
 	}
+
+
+
+
 
 	return true;
 }

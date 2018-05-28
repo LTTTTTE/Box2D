@@ -14,7 +14,7 @@ class HelloWorld : public Scene {
 
 public:
 
-	bool debug = false;
+	bool debug = true;
 	bool bDrag;
 
 	static Scene* createScene();
