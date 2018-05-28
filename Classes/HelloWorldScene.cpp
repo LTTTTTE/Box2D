@@ -9,21 +9,29 @@ Scene* HelloWorld::createScene()
 
 	return scene;
 }
+//
 
 bool HelloWorld::init()
 {
-	
+
 	if (!Scene::init())
 	{
 		return false;
 	}
 
-	if (this->createBox2dWorld(debug))
+	texture = Director::getInstance()->getTextureCache()->addImage("Globe_48px.png");
+	texture_block = Director::getInstance()->getTextureCache()->addImage("blocks.png");
+
+	if (this->createBox2dWorld(debug)) {
+
+		srand((int)time(nullptr));
 		this->setBox2dWorld();
 		this->schedule(schedule_selector(HelloWorld::tick));
 
+	}
 	return true;
 }
+//
 
 bool HelloWorld::createBox2dWorld(bool debug)
 {
@@ -78,6 +86,7 @@ bool HelloWorld::createBox2dWorld(bool debug)
 
 	return true;
 }
+//
 
 void HelloWorld::setBox2dWorld()  ////스테틱, 키네마틱 바디들 생성( 월드지형생성느낌)
 {
@@ -85,12 +94,8 @@ void HelloWorld::setBox2dWorld()  ////스테틱, 키네마틱 바디들 생성( 월드지형생성
 	//조인트는 바디와 바디의 연결고리 
 	bDrag = false; //아래는 마우스 조인트 바디.
 	gbody = this->addNewSprite(Vec2(0, 0), Size(0, 0), b2_staticBody, nullptr, 0);
-	
+
 	this->addNewSprite(Vec2(240, 160), Size(32, 32), b2_dynamicBody, "test", 0);
-
-
-	texture = Director::getInstance()->getTextureCache()->addImage("Globe_48px.png");
-	texture_block = Director::getInstance()->getTextureCache()->addImage("blocks.png");
 
 	//static body start////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -135,7 +140,7 @@ void HelloWorld::setBox2dWorld()  ////스테틱, 키네마틱 바디들 생성( 월드지형생성
 	b2BodyDef bodydef_block;
 
 	bodydef_block.type = b2_staticBody;
-	bodydef_block.position.Set(winsize.width / 3 / PTM_RATIO, winsize.height / 3 / PTM_RATIO); 
+	bodydef_block.position.Set(winsize.width / 3 / PTM_RATIO, winsize.height / 3 / PTM_RATIO);
 	bodydef_block.userData = spr_block;
 
 	body_block = world->CreateBody(&bodydef_block);
@@ -178,8 +183,10 @@ void HelloWorld::setBox2dWorld()  ////스테틱, 키네마틱 바디들 생성( 월드지형생성
 	body_minecraft->CreateFixture(&fixdef_minecraft);
 
 	//kinematic body end////////////////////////////////////////////////////////////////////////////////////////////////////
-	
+
 }
+//
+
 
 void HelloWorld::draw(Renderer * renderer, const Mat4 & transform, uint32_t flags)
 {
@@ -212,6 +219,8 @@ b2Body * HelloWorld::addNewSprite(Vec2 point, Size size, b2BodyType bodytype, co
 
 	b2Body* body;
 	b2BodyDef bodydef;
+
+	bodydef.type = bodytype;  //<<이거하나안적어서 ㅅㅂ
 	bodydef.position.Set(point.x / PTM_RATIO, point.y / PTM_RATIO);
 
 	if (spriteName) {   //뭔진모르겟는데 그냥 결론은 스프라이트생성후 바디정보에 넣기.
@@ -219,7 +228,7 @@ b2Body * HelloWorld::addNewSprite(Vec2 point, Size size, b2BodyType bodytype, co
 
 			int idx = (CCRANDOM_0_1() > 0.5 ? 0 : 1);
 			int idy = (CCRANDOM_0_1() > 0.5 ? 0 : 1);
-			auto spr = Sprite::create("blocks.png");
+			auto spr = Sprite::createWithTexture(texture_block, Rect(32 * idx, 32 * idy, 32, 32));
 			spr->setPosition(point);
 
 			this->addChild(spr);
@@ -233,41 +242,43 @@ b2Body * HelloWorld::addNewSprite(Vec2 point, Size size, b2BodyType bodytype, co
 			bodydef.userData = spr;
 		}
 	}
-		body = world->CreateBody(&bodydef);
 
-		b2FixtureDef fixdef;
-		b2PolygonShape shape;
-		b2CircleShape shape_cir;
+	body = world->CreateBody(&bodydef);
 
-		if (type == 0) {
-			shape.SetAsBox(size.width / 2 / PTM_RATIO, size.height / 2 / PTM_RATIO);
-			fixdef.shape = &shape;
-		}
-		else {
-			shape_cir.m_radius = (size.width / 2) / PTM_RATIO;
-			fixdef.shape = &shape_cir;
-		}
+	b2FixtureDef fixdef;
+	b2PolygonShape shape;
+	b2CircleShape shape_cir;
 
-		fixdef.density = 1.0f;
-		fixdef.restitution = 0.7f;
+	if (type == 0) {
+		shape.SetAsBox(size.width / 2 / PTM_RATIO, size.height / 2 / PTM_RATIO);
+		fixdef.shape = &shape;
+	}
+	else {
+		shape_cir.m_radius = (size.width / 2) / PTM_RATIO;
+		fixdef.shape = &shape_cir;
+	}
 
-		body->CreateFixture(&fixdef);
+	fixdef.density = 1.0f;
+	fixdef.restitution = 0.7f;
 
-		CCLOG("addNewSprite");
+	body->CreateFixture(&fixdef);
 
-		return body;
+	CCLOG("addNewSprite");
+
+	return body;
 }
+//
 
 b2Body * HelloWorld::getBodyAtTab(Vec2 point)//터치한곳이랑 모든바디랑 비교해서 체크
 {
-	b2Fixture* fix; 
+	b2Fixture* fix;
 
 	for (b2Body* b = world->GetBodyList(); b; b = b->GetNext()) { //모든바디 돌기!~
-		
+
 		if (b->GetUserData() != nullptr) { //모든바디돌기
 
 			if (b->GetType() == b2_staticBody)continue; //스테틱바디들은 재낌
-		
+
 			fix = b->GetFixtureList(); //그바디의 픽스쳐 뽑아냄
 			CCLOG("getBodyAtTab");
 			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -278,6 +289,7 @@ b2Body * HelloWorld::getBodyAtTab(Vec2 point)//터치한곳이랑 모든바디랑 비교해서 
 	}
 	return nullptr;
 }
+//
 
 void HelloWorld::onEnter()
 {
@@ -285,20 +297,20 @@ void HelloWorld::onEnter()
 
 	auto listener = EventListenerTouchOneByOne::create();
 	listener->setSwallowTouches(true);
-//	listener->onTouchBegan = CC_CALLBACK_2(HelloWorld::onTouchBegan, this);
-	listener->onTouchBegan = CC_CALLBACK_2(HelloWorld::onTouchBegan2, this);
+	listener->onTouchBegan = CC_CALLBACK_2(HelloWorld::onTouchBegan, this);
 	listener->onTouchMoved = CC_CALLBACK_2(HelloWorld::onTouchMoved, this);
 	listener->onTouchEnded = CC_CALLBACK_2(HelloWorld::onTouchEnded, this);
 
 	Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(listener, this);
 
 }
+//
 
 void HelloWorld::tick(float dt)
 {
 	world->Step(dt, 8, 3); // (틱타임0.016 , 충돌계산반복타임, 바디위치계산반복타임)
 
-	//아래는 바디에 붙은 스프라이트를 제어하는 업데이트문 , 월드안의 바디들을 getbodyList로 다 가져올수잇다(자동VECTOR저장)
+						   //아래는 바디에 붙은 스프라이트를 제어하는 업데이트문 , 월드안의 바디들을 getbodyList로 다 가져올수잇다(자동VECTOR저장)
 	for (b2Body* b = world->GetBodyList(); b; b = b->GetNext()) {
 
 		if (b->GetUserData() != nullptr) {
@@ -308,45 +320,39 @@ void HelloWorld::tick(float dt)
 			spr->setRotation(-1 * CC_RADIANS_TO_DEGREES(b->GetAngle()));//스프라이트의 각도도 바디각도에맞게 돌린다.
 		}
 
-		//
+		/*
 		if (b->GetType() == b2_kinematicBody) {
 
-			MT19937 num(1, 5); //난수생성
-			MT19937 num2(-5, 5);
+		MT19937 num(1, 5); //난수생성
+		MT19937 num2(-5, 5);
 
-			if (b->GetPosition().x*PTM_RATIO > winsize.width ) //방항전환
-				b->SetLinearVelocity(b2Vec2(num(_MT19937)*-5.0f, num2(_MT19937)*5.0f));
+		if (b->GetPosition().x*PTM_RATIO > winsize.width ) //방항전환
+		b->SetLinearVelocity(b2Vec2(num(_MT19937)*-5.0f, num2(_MT19937)*5.0f));
 
-			if (b->GetPosition().y*PTM_RATIO > winsize.height)
-				b->SetLinearVelocity(b2Vec2(num2(_MT19937)*5.0f, num(_MT19937)*-5.0f));
+		if (b->GetPosition().y*PTM_RATIO > winsize.height)
+		b->SetLinearVelocity(b2Vec2(num2(_MT19937)*5.0f, num(_MT19937)*-5.0f));
 
-			if (b->GetPosition().x*PTM_RATIO < 0 )
-				b->SetLinearVelocity(b2Vec2(num(_MT19937)*5.0f, num2(_MT19937)*5.0f));
+		if (b->GetPosition().x*PTM_RATIO < 0 )
+		b->SetLinearVelocity(b2Vec2(num(_MT19937)*5.0f, num2(_MT19937)*5.0f));
 
-			if (b->GetPosition().y*PTM_RATIO < 0)
-				b->SetLinearVelocity(b2Vec2(num2(_MT19937)*5.0f, num(_MT19937)*5.0f));
-		}
+		if (b->GetPosition().y*PTM_RATIO < 0)
+		b->SetLinearVelocity(b2Vec2(num2(_MT19937)*5.0f, num(_MT19937)*5.0f));
+		}*/
 	}
 
 
 }
+//
 
 bool HelloWorld::onTouchBegan(Touch * touch, Event * event)
-{
-	addNewSpriteAtPosition2(touch->getLocation());
-
-	return true;
-}
-
-bool HelloWorld::onTouchBegan2(Touch * touch, Event * event)
 {
 	Vec2 touch_point = touch->getLocation();
 
 	if (b2Body* b = this->getBodyAtTab(touch_point)) {
-		
-//		//조인트는 바디와 바디의 연결고리 
-//		bDrag = false; //아래는 마우스 조인트 바디.
-//		gbody = this->addNewSprite(Vec2(0, 0), Size(0, 0), b2_staticBody, nullptr, 0);
+
+		//		//조인트는 바디와 바디의 연결고리 
+		//		bDrag = false; //아래는 마우스 조인트 바디.
+		//		gbody = this->addNewSprite(Vec2(0, 0), Size(0, 0), b2_staticBody, nullptr, 0);
 
 		dragbody = b;
 		bDrag = true;
@@ -358,7 +364,7 @@ bool HelloWorld::onTouchBegan2(Touch * touch, Event * event)
 		mouseJdef.maxForce = 300.0*dragbody->GetMass();
 
 		mouseJ = (b2MouseJoint*)world->CreateJoint(&mouseJdef);
-		CCLOG("onTouchBagan2");
+		CCLOG("onTouchBagan");
 	}
 
 	return true;
@@ -384,72 +390,3 @@ void HelloWorld::onTouchEnded(Touch * touch, Event * event)
 	bDrag = false;
 }
 
-void HelloWorld::addNewSpriteAtPosition(Vec2 location)
-{
-	b2Body* body_spr;
-	b2BodyDef body_spr_Def;
-
-	//debug//
-	if (!debug) {
-		auto spr = Sprite::createWithTexture(texture);
-		spr->setPosition(location.x, location.y);
-		this->addChild(spr);
-		body_spr_Def.userData = spr;
-	}
-	else body_spr_Def.userData = nullptr;
-	////
-
-	body_spr_Def.type = b2_dynamicBody;
-	body_spr_Def.position.Set(location.x / PTM_RATIO, location.y / PTM_RATIO);
-	
-
-	body_spr = world->CreateBody(&body_spr_Def);  //바디만들고 바디def설정완료
-
-	b2FixtureDef fix_spr_def;	 //픽스쳐설정객체 생성
-	b2CircleShape cir;
-	cir.m_radius = 0.65f;
-
-	//픽스쳐설정설정
-	fix_spr_def.shape = &cir;  
-	fix_spr_def.density = 1.0f;
-	fix_spr_def.friction = 0.2f;
-	fix_spr_def.restitution = 0.7f;
-
-	body_spr->CreateFixture(&fix_spr_def);
-
-}
-
-void HelloWorld::addNewSpriteAtPosition2(Vec2 location)
-{
-	MT19937 num(1, 3);
-
-	auto spr_google = Sprite::create("Google_Play_48px.png");
-	spr_google->setPosition(location.x, location.y);
-	spr_google->setAnchorPoint(Point(0.5, 0.1));
-	this->addChild(spr_google,1,"spr_google");
-
-	b2Body* body_google;
-	b2BodyDef bodydef_google;
-
-	bodydef_google.type = b2_dynamicBody;
-	bodydef_google.position.Set(location.x / PTM_RATIO, location.y / PTM_RATIO);
-	bodydef_google.userData = spr_google;
-
-	body_google = world->CreateBody(&bodydef_google);
-
-	b2FixtureDef fixdef_google;
-	b2PolygonShape shape_google;
-
-	b2Vec2 tri[3];
-	tri[0] = b2Vec2((spr_google->getContentSize().width / 2)*0.9 / PTM_RATIO * -1, 0.0);
-	tri[1] = b2Vec2((spr_google->getContentSize().width / 2)*0.9 / PTM_RATIO, 0.0);
-	tri[2] = b2Vec2(0.0, (spr_google->getContentSize().height)*0.9 / PTM_RATIO);
-	shape_google.Set(tri, 3);
-
-	fixdef_google.shape = &shape_google;
-	fixdef_google.density = 1.0f;
-	fixdef_google.restitution = 0.7f;
-
-	body_google->CreateFixture(&fixdef_google);
-
-}

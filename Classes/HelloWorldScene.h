@@ -45,11 +45,9 @@ public:
 
 	bool createBox2dWorld(bool debug);
 	void setBox2dWorld();
-	void addNewSpriteAtPosition(Vec2 location);
-	void addNewSpriteAtPosition2(Vec2 location);
+
 
 	bool onTouchBegan(Touch* touch, Event* event);
-	bool onTouchBegan2(Touch* touch, Event* event);
 	void onTouchMoved(Touch* touch, Event* event);
 	void onTouchEnded(Touch* touch, Event* event);
 
