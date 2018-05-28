@@ -320,7 +320,7 @@ void HelloWorld::tick(float dt)
 			spr->setRotation(-1 * CC_RADIANS_TO_DEGREES(b->GetAngle()));//스프라이트의 각도도 바디각도에맞게 돌린다.
 		}
 
-		/*
+		
 		if (b->GetType() == b2_kinematicBody) {
 
 		MT19937 num(1, 5); //난수생성
@@ -337,7 +337,7 @@ void HelloWorld::tick(float dt)
 
 		if (b->GetPosition().y*PTM_RATIO < 0)
 		b->SetLinearVelocity(b2Vec2(num2(_MT19937)*5.0f, num(_MT19937)*5.0f));
-		}*/
+		}
 	}
 
 
