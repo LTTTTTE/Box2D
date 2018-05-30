@@ -83,6 +83,29 @@ bool HelloWorld::init_button() {
 	return true;
 }
 
+bool HelloWorld::init_other() {
+
+	drawP1 = b2Vec2(200 / PTM_RATIO, 100 / PTM_RATIO);
+	drawP2 = b2Vec2(400 / PTM_RATIO, 300 / PTM_RATIO);
+
+	auto draw = DrawNode::create(); 
+	draw->drawLine(Vec2(drawP1.x*PTM_RATIO, drawP1.y*PTM_RATIO), Point(drawP2.x*PTM_RATIO, drawP2.y*PTM_RATIO), Color4F::RED);
+	this->addChild(draw, 5,"draw");
+
+	auto spr_globe = Sprite::create("Globe_48px.png");
+	spr_globe->setScale(0.2);
+	spr_globe->setPosition(drawP2.x*PTM_RATIO, drawP2.y*PTM_RATIO);
+
+	auto spr_globe_1 = Sprite::create("Globe_48px.png");
+	spr_globe_1->setScale(0.2);
+	spr_globe_1->setPosition(drawP1.x*PTM_RATIO, drawP1.y*PTM_RATIO);
+
+	this->addChild(spr_globe);
+	this->addChild(spr_globe_1);
+
+	return true;
+}
+
 bool HelloWorld::init()
 {
 
@@ -102,9 +125,9 @@ bool HelloWorld::init()
 	Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(listener_keyboard, this);
 	
 
-
 	this->init_background();
 	this->init_button();
+	this->init_other();
 	this->createBox2dWorld();
 	this->setBox2dWorld();
 	this->schedule(schedule_selector(HelloWorld::tick));
@@ -116,6 +139,20 @@ bool HelloWorld::init()
 void HelloWorld::tick(float dt) {
 
 	world->Step(dt, 8, 3);
+	world->RayCast(this, drawP1, drawP2);
+
+	/*if (!triggered) {
+
+		CCLOG("not_Triggered %d",triggered);
+
+		drawP2 = b2Vec2(400 / PTM_RATIO, 300 / PTM_RATIO);
+
+		this->removeChildByName("draw");
+
+		auto draw = DrawNode::create();
+		draw->drawLine(Vec2(drawP1.x*PTM_RATIO, drawP1.y*PTM_RATIO), Point(drawP2.x*PTM_RATIO, drawP2.y*PTM_RATIO), Color4F::RED);
+		this->addChild(draw, 5, "draw");
+	}*/
 
 	for (b2Body* b = world->GetBodyList(); b; b = b->GetNext()) {
 
@@ -134,12 +171,20 @@ void HelloWorld::tick(float dt) {
 					CCLOG("keyboard_2");
 					b->SetTransform(b2Vec2(b->GetPosition().x + vec/PTM_RATIO, b->GetPosition().y), 0);
 				}
+				if (isjumped == 1) {
+					CCLOG("JUMP!");
+					b->ApplyForceToCenter(b2Vec2(0, 400), true);
+					isjumped--;
+				}
+				
 			}
 
 			spr->setPosition(Vec2((b->GetPosition().x)*(PTM_RATIO), (b->GetPosition().y)*(PTM_RATIO)));
 			spr->setRotation(-1 * CC_RADIANS_TO_DEGREES(b->GetAngle()));
 		}
 	}
+
+	triggered = false;
 
 }
 
@@ -487,10 +532,12 @@ void HelloWorld::onKeyPressed(EventKeyboard::KeyCode e, Event *) {
 
 		++toggle_keyboard; vec = 3;
 	}
-	/*if (e == EventKeyboard::KeyCode::KEY_SPACE) {
-		Action* act_bounce = JumpBy::create(0.4, Point(0, 0), 50, 1);
-		spr->runAction(act_bounce);
-	}*/
+	if (e == EventKeyboard::KeyCode::KEY_SPACE) {
+
+		if (isjumped==0) {
+			isjumped++;
+		}
+	}
 
 }
 
@@ -506,3 +553,25 @@ void HelloWorld::onKeyReleased(EventKeyboard::KeyCode e, Event *) {
 	}
 
 }
+
+float32 HelloWorld::ReportFixture(b2Fixture* fix, const b2Vec2& point, const b2Vec2& normal, float32 action) {
+
+	CCLOG("triggered");
+	triggered = true;
+	CCLOG("POINT : %f , %f", point.x, point.y);
+	CCLOG("NORMAL: %f , %f", normal.x, normal.y);
+	fix->GetBody()->ApplyForceToCenter(b2Vec2(0, 100), true);
+
+	/*drawP2 = point;
+
+	this->removeChildByName("draw");
+
+	auto draw = DrawNode::create();
+	draw->drawLine(Vec2(drawP1.x*PTM_RATIO, drawP1.y*PTM_RATIO), Point(drawP2.x*PTM_RATIO, drawP2.y*PTM_RATIO), Color4F::RED);
+	this->addChild(draw, 5, "draw");*/
+
+	
+	return 0.0f;
+}
+
+
